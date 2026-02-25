@@ -186,7 +186,7 @@ Gerar e baixar a chave JSON:
 
 ```bash
 gcloud iam service-accounts keys create sa-key.json \
-  --iam-account=github-deployer@SEU_PROJECT_ID.iam.gserviceaccount.com
+  --iam-account=github-deployer@meu-novo-projeto-488114.iam.gserviceaccount.com
 ```
 
 > **Atenção:** nunca faça commit deste arquivo. Adicione `sa-key.json` ao seu `.gitignore`.
