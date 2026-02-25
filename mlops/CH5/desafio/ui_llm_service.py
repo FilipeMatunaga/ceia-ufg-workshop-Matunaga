@@ -17,6 +17,12 @@ Como rodar:
 
 # TODO: importe as bibliotecas necessárias
 # Dica: você vai precisar de streamlit e requests
+import streamlit as st
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv(".env")
 
 
 # ------------------------------------------------------------
@@ -25,6 +31,7 @@ Como rodar:
 # ------------------------------------------------------------
 
 # TODO: configure o título da página e um ícone (opcional)
+st.set_page_config(page_title="Título")
 
 
 # ------------------------------------------------------------
@@ -32,7 +39,14 @@ Como rodar:
 # ------------------------------------------------------------
 
 # TODO: adicione um título e uma breve descrição do que este chat faz
-
+st.title("🤖 Chatbot LLM no Cloud Run")
+st.markdown("""
+Esta interface permite interagir com um modelo de linguagem hospedado de forma escalável.
+- **Serviço:** Google Cloud Run
+- **Funcionalidade:** Processamento de linguagem natural em tempo real
+- **Status:** Conectado à API remota
+""")
+st.divider()
 
 # ------------------------------------------------------------
 # URL DA API
@@ -42,6 +56,8 @@ Como rodar:
 # ------------------------------------------------------------
 
 # TODO: leia a variável de ambiente API_URL
+api_url = os.getenv("API_URL", "https://api-blackbox-346498066018.us-central1.run.app")
+
 
 
 # ------------------------------------------------------------
@@ -56,7 +72,8 @@ Como rodar:
 # ------------------------------------------------------------
 
 # TODO: inicialize st.session_state["messages"] se necessário
-
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
 
 # ------------------------------------------------------------
 # EXIBIÇÃO DO HISTÓRICO
@@ -66,6 +83,9 @@ Como rodar:
 
 # TODO: percorra st.session_state["messages"] e exiba cada uma
 
+for message in st.session_state["messages"]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 # ------------------------------------------------------------
 # FUNÇÃO DE CHAMADA À API
@@ -88,6 +108,36 @@ Como rodar:
 # ------------------------------------------------------------
 
 # TODO: implemente a função call_llm
+# ------------------------------------------------------------
+# FUNÇÃO DE CHAMADA À API
+# ------------------------------------------------------------
+
+def call_llm(messages: list[dict]) -> str:
+    print(messages)
+    payload = {
+        "messages": [
+            {
+            "role": "user",
+            "content": messages[-1].get("content")
+            }
+        ],
+        "model": "gemini-2.5-flash"
+    }
+    try:
+        print(payload)
+        response = requests.post(
+            f"https://api-blackbox-346498066018.us-central1.run.app/chat", 
+            json=payload, 
+            timeout=60
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("message").get("content")
+
+    except requests.exceptions.RequestException as e:
+        return f"⚠️ Ops! Tive um problema ao conectar com o serviço: {str(e)}"
+    
+
 
 
 # ------------------------------------------------------------
@@ -98,6 +148,15 @@ Como rodar:
 
 # TODO: capture a entrada do usuário com st.chat_input()
 
+if prompt := st.chat_input("Como posso ajudar hoje?"):
+    
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+
+
 # Quando o usuário enviar uma mensagem, você deve:
 #   1. Adicioná-la ao histórico (role: "user")
 #   2. Exibi-la na tela imediatamente
@@ -106,6 +165,15 @@ Como rodar:
 #   5. Exibir a resposta na tela
 
 # TODO: implemente o fluxo acima
+
+    with st.chat_message("assistant"):
+        placeholder = st.empty()
+        placeholder.markdown("*Digitando...*")
+        full_response = call_llm(st.session_state["messages"])
+        
+        placeholder.markdown(full_response)
+    
+    st.session_state["messages"].append({"role": "assistant", "content": full_response})
 
 
 # ------------------------------------------------------------
