@@ -1,0 +1,69 @@
+# Cloud Build Configuration - API Blackbox
+#
+# Este arquivo define como fazer build e deploy automático no GCP.
+#
+# Processo:
+# 1. Build da imagem Docker
+# 2. Push para Artifact Registry
+# 3. Deploy no Cloud Run
+#
+# Trigger:
+#   git push → Cloud Build → Docker build → Cloud Run deploy
+#
+# Uso:
+#   gcloud builds submit --config=cloudbuild.yaml .
+
+substitutions:
+  _IMAGE_NAME: api-blackbox
+  _REGION: us-central1
+  _REPOSITORY: docker-images
+
+steps:
+  # ========== STEP 1: BUILD ==========
+  # Cria imagem Docker otimizada para produção
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:latest'
+      - '-f'
+      - 'Dockerfile.prod'
+      - '.'
+
+    # Logs informativos
+    waitFor: ['-']  # Não espera steps anteriores (primeiro step)
+
+  # ========== STEP 2: PUSH ==========
+  # Envia imagem para Artifact Registry (registry privado do GCP)
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}'
+
+    waitFor: ['build-image']  # Espera build terminar
+
+  
+
+# ========== IMAGES ==========
+# Lista de imagens que serão armazenadas no Artifact Registry
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:latest'
+
+# ========== OPTIONS ==========
+# Configurações do build
+
+  # Logging apenas no Cloud Logging (mais limpo)
+  logging: CLOUD_LOGGING_ONLY
+
+# ========== TIMEOUT ==========
+# Timeout global do build
+timeout: 1200s
