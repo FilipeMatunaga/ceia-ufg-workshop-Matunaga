@@ -58,12 +58,6 @@ images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}'
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_IMAGE_NAME}:latest'
 
-# ========== OPTIONS ==========
-# Configurações do build
-
-  # Logging apenas no Cloud Logging (mais limpo)
-  logging: CLOUD_LOGGING_ONLY
-
 # ========== TIMEOUT ==========
 # Timeout global do build
 timeout: 1200s
