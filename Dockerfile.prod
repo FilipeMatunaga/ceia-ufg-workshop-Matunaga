@@ -1,0 +1,48 @@
+# Dockerfile de Produção — LLM Service (CH5)
+#
+# Versão simplificada para o workshop:
+# - Imagem base pequena (python:3.11-slim)
+# - Instala as dependências de `requirements.txt` da pasta atual
+# - Copia apenas o código da API em `app/`
+# - Usa Gunicorn + UvicornWorker na porta 8080 (padrão do Cloud Run)
+
+FROM python:3.11-slim
+
+LABEL maintainer="llmops-lab"
+LABEL description="LLM Service - Produção"
+LABEL version="0.1.0"
+
+# Diretório de trabalho dentro do container
+WORKDIR /app
+
+# Copia e instala dependências de produção
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn uvicorn
+
+# Copia o código da aplicação (pasta app contém main.py, routes, etc.)
+COPY app/ .
+
+# Variáveis de ambiente padrão de produção
+ENV PYTHONUNBUFFERED=1 \
+    APP_ENV=production \
+    PORT=8080
+
+# Porta exposta (Cloud Run usa 8080 por padrão)
+EXPOSE 8080
+
+# Comando de produção
+# Gunicorn: servidor robusto para produção
+# -w: número de workers
+# -k: worker async do Uvicorn
+CMD ["gunicorn", \
+     "-w", "2", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8080", \
+     "--timeout", "60", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-", \
+     "--log-level", "info", \
+     "main:app"]
+
